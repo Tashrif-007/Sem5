@@ -1,48 +1,60 @@
 #include <bits/stdc++.h>
 using namespace std;
 
+struct varChange {
+    char var;
+    int oldValue;
+    int newValue;
+};
+
 struct Transaction {
     string id;
     bool committed;
     bool committedBeforeCheckpoint;
+    vector<varChange> changes;
+
     bool operator<(const Transaction& tran) const {
         return id < tran.id;
     }
 };
 
+unordered_map<char, int> val; 
+
 int main() {
     ifstream file("log.txt");
-    if (!file.is_open()) {
+    if (!file.is_open()) 
+    {
         cerr << "Error: Could not open the file!" << endl;
         return 1;
     }
-    set<Transaction>transactions;
-    set<string>redoList;
-    set<string>undoList;
+
+    set<Transaction> transactions;
+    set<string> redoList;
+    set<string> undoList;
     string line;
     bool checkpointEncountered = false;
 
-    while (getline(file, line)) 
+    while(getline(file, line))
     {
         istringstream iss(line);
         string word;
 
-        if(line.find("<START") != string::npos || line.find("<COMMIT") != string::npos) 
+        if(line.find("<START") != string::npos || line.find("<COMMIT") != string::npos)
         {
-            iss >> word;
+            iss>>word;
             string tran_id;
 
             if(word == "<START") 
             {
                 iss >> tran_id;
                 if (tran_id.back() == '>') tran_id.pop_back();
-                transactions.insert({tran_id, false, false});
+                transactions.insert({tran_id, false, false, {}});
             } 
             else if(word == "<COMMIT") 
             {
-                iss >> tran_id;
-                if (tran_id.back() == '>') tran_id.pop_back();
-                auto it = transactions.find({tran_id, false, false});
+                iss>>tran_id;
+                if(tran_id.back() == '>') tran_id.pop_back();
+                auto it = transactions.find({tran_id, false, false, {}});
                 if(it != transactions.end()) 
                 {
                     Transaction committed_tran = *it;
@@ -53,19 +65,32 @@ int main() {
                 }
             }
         } 
-        else if(line.find("<CKPT") != string::npos) 
-            checkpointEncountered = true;
+        else if(line.find("<CKPT") != string::npos)
+            checkpointEncountered = true; 
         else if(line[1] == 'T') 
         {
             iss >> word;
             string tran_id = word.substr(1, word.find(' ') - 1);
-            transactions.insert({tran_id, false, false});
+            char var = line[4];
+            iss >> word;
+            string oldStr, newStr;
+            iss >> oldStr >> newStr;
+
+            newStr.pop_back();
+            auto it = transactions.find({tran_id, false, false, {}});
+            if(it != transactions.end()) 
+            {
+                Transaction temp_tx = *it;
+                temp_tx.changes.push_back({var, stoi(oldStr), stoi(newStr)});
+                transactions.erase(it);
+                transactions.insert(temp_tx);
+            }
         }
     }
 
     file.close();
 
-    for (auto& tran : transactions)
+    for(auto& tran : transactions) 
     {
         if(tran.committed && (!tran.committedBeforeCheckpoint || !checkpointEncountered))
             redoList.insert(tran.id);
@@ -73,21 +98,42 @@ int main() {
             undoList.insert(tran.id);
     }
 
-    cout<<"Total unique transactions: "<<transactions.size()<<endl;
-    
-    cout<<"Transaction Details:"<<endl;
-    for(auto& tran : transactions)
-        cout<<"Transaction ID: "<<tran.id<<", Committed: "<<(tran.committed ? "Yes" : "No")<<", Committed Before CKPT: " << (tran.committedBeforeCheckpoint ? "Yes" : "No")<<endl;
+    for(const auto& tran_id : undoList) 
+    {
+        auto it = find_if(transactions.begin(), transactions.end(), [&tran_id](const Transaction& t) { return t.id == tran_id; });
+        if(it != transactions.end()) 
+        {
+            auto& tran = *it;
+            for(auto& change : tran.changes) 
+            {
+                val[change.var] = change.oldValue;  
+            }
+        }
+    }
 
-    cout<<"Transactions to Redo: ";
+
     for(auto& tran_id : redoList)
-        cout<<tran_id<<" ";
-    cout<<endl;
+    {
+        auto it = find_if(transactions.begin(), transactions.end(), [&tran_id](const Transaction& t) { return t.id == tran_id; });
 
-    cout<<"Transactions to Undo: ";
-    for(auto& tran_id : undoList)
-        cout<<tran_id<<" ";
-    cout<<endl;
+        if(it != transactions.end()) 
+        {
+            const auto& tran = *it;
+            for(auto& change : tran.changes) 
+            {
+                val[change.var] = change.newValue; 
+            }
+        }
+    }
 
+    cout<<"Undo: ";
+    for(auto x : undoList) cout<<x<<" ";
+    cout<<"\nRedo: ";
+    for(auto x : redoList) cout<<x<<" ";
+    cout<<"\n";
+
+    cout<<"Final values after undo/redo:"<<endl;
+    for(auto&[var, value] : val)
+        cout<<var<<": "<<value<<endl;
     return 0;
 }
