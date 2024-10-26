@@ -1,0 +1,3 @@
+t1 R(A) - - - - - R(C) W(B) COM
+t2 - - - R(A) W(A) COM - - - -
+t3 - R(A) R(C) - - - - - W(B) COM
