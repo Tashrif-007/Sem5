@@ -78,14 +78,6 @@ void findRangeBoundaries(int* arr, int size, int numPartitions, int* boundaries)
     printf("\n");
 }
 
-int countInRange(int* arr, int size, int start, int end) {
-    int count = 0;
-    for(int i = 0; i < size; i++) {
-        if(arr[i] >= start && arr[i] < end) count++;
-    }
-    return count;
-}
-
 JoinResult* rangePartitionJoin(int* arr1, int size1, int* arr2, int size2, int* totalJoins) {
     int numThreads = omp_get_max_threads();
     int* boundaries = (int*)malloc((numThreads + 1) * sizeof(int));
@@ -130,11 +122,6 @@ JoinResult* rangePartitionJoin(int* arr1, int size1, int* arr2, int size2, int* 
         free(localResults);
     }
     
-    printf("Joins per thread:\n");
-    for(int i = 0; i < numThreads; i++) {
-        printf("Thread %d: %d joins\n", i, joinsPerThread[i]);
-    }
-    printf("\n");
     
     free(boundaries);
     free(joinsPerThread);
@@ -155,14 +142,6 @@ int main(int argc, char* argv[]) {
     
     readArrays(argv[1], &arr1, &arr2, &size);
     
-    printf("Array size: %d\n", size);
-    printf("First 5 elements of arrays:\n");
-    for(int i = 0; i < (size < 5 ? size : 5); i++) {
-        printf("arr1[%d]=%d, arr2[%d]=%d\n", i, arr1[i], i, arr2[i]);
-    }
-    
-    printf("\nNumber of threads available: %d\n", omp_get_max_threads());
-    
     start_time = omp_get_wtime();
     
     int totalJoins;
@@ -174,7 +153,7 @@ int main(int argc, char* argv[]) {
     
     printf("\nJoin Results:\n");
     for(int i = 0; i < totalJoins; i++) {
-        printf("Thread %d: (%d, %d)\n", 
+        printf("CPU %d: (%d, %d)\n", 
                results[i].threadId, 
                results[i].val1, 
                results[i].val2);
