@@ -1,0 +1,6 @@
+Humidity,Air,Season,Temperature,PlayTennis
+High,Weak,Summer,Hot,No
+High,Strong,Winter,Cold,No
+Low,Weak,Spring,Cool,Yes
+Low,Strong,Summer,Hot,Yes
+High,Weak,Autumn,Cool,No
